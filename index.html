@@ -75,29 +75,35 @@ joinBtn.onclick = async () => {
   });
 
   peer.on('open', id => {
-    // Listen for incoming calls
-    peer.on('call', incomingCall => {
-      incomingCall.answer(localStream);
-      incomingCall.on('stream', stream => {
-        remoteVideo.srcObject = stream;
-      });
-      call = incomingCall;
+  // Listen for incoming calls
+  peer.on('call', incomingCall => {
+    incomingCall.answer(localStream);
+    incomingCall.on('stream', stream => {
+      remoteVideo.srcObject = stream;
     });
+    call = incomingCall;
+  });
 
-    // Try to find another peer in the room to call
-    fetch(`https://0.peerjs.com/peers`) // PeerServer public API
-      .then(res => res.json())
-      .then(peers => {
-        // Find another peer in the same room (but not self)
-        const remotePeerId = peers.find(pid => pid.startsWith(room + '-') && pid !== myId);
-        if (remotePeerId) {
+  // Try to find another peer in the room to call
+  fetch(`https://0.peerjs.com/peers`)
+    .then(res => res.json())
+    .then(peers => {
+      // Find all peers in the same room (except self)
+      const roomPeers = peers.filter(pid => pid.startsWith(room + '-') && pid !== myId);
+      if (roomPeers.length > 0) {
+        // Sort IDs to ensure only one initiates the call
+        const allPeers = [myId, ...roomPeers].sort();
+        if (myId === allPeers[allPeers.length - 1]) {
+          // Only the user with the highest ID calls the lowest ID
+          const remotePeerId = allPeers[0];
           call = peer.call(remotePeerId, localStream);
           call.on('stream', stream => {
             remoteVideo.srcObject = stream;
           });
         }
-      });
-  });
+      }
+    });
+});
 };
 
 leaveBtn.onclick = () => {
