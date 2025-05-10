@@ -44,7 +44,7 @@
   </div>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-let localStream, peer, call, callInterval;
+let localStream, peer, call, callTimeout, hasConnected = false;
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const joinBtn = document.getElementById('joinBtn');
@@ -61,6 +61,7 @@ joinBtn.onclick = async () => {
   joinBtn.disabled = true;
   leaveBtn.disabled = false;
   roomInput.disabled = true;
+  hasConnected = false;
 
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   localVideo.srcObject = localStream;
@@ -74,40 +75,45 @@ joinBtn.onclick = async () => {
     secure: true
   });
 
-  peer.on('open', id => {
-    // Listen for incoming calls
-    peer.on('call', incomingCall => {
-      incomingCall.answer(localStream);
-      incomingCall.on('stream', stream => {
-        remoteVideo.srcObject = stream;
-      });
-      call = incomingCall;
-      // If we receive a call, stop trying to call others
-      if (callInterval) clearInterval(callInterval);
+  // Always accept incoming calls
+  peer.on('call', incomingCall => {
+    if (hasConnected) return; // Already connected
+    hasConnected = true;
+    incomingCall.answer(localStream);
+    incomingCall.on('stream', stream => {
+      remoteVideo.srcObject = stream;
     });
+    call = incomingCall;
+    if (callTimeout) clearTimeout(callTimeout);
+  });
 
-    // Try to find another peer in the room to call, retry for a few seconds
+  peer.on('open', id => {
+    // Try to call another peer in the room, retry for up to 10 seconds
     let attempts = 0;
-    callInterval = setInterval(() => {
+    function tryCall() {
+      if (hasConnected) return;
       fetch(`https://0.peerjs.com/peers`)
         .then(res => res.json())
         .then(peers => {
           const roomPeers = peers.filter(pid => pid.startsWith(room + '-') && pid !== myId);
           if (roomPeers.length > 0) {
-            const allPeers = [myId, ...roomPeers].sort();
-            if (myId === allPeers[allPeers.length - 1]) {
-              const remotePeerId = allPeers[0];
+            // Always call the first peer found (lowest ID)
+            const remotePeerId = roomPeers.sort()[0];
+            if (!hasConnected) {
               call = peer.call(remotePeerId, localStream);
               call.on('stream', stream => {
                 remoteVideo.srcObject = stream;
               });
-              clearInterval(callInterval);
+              hasConnected = true;
+              if (callTimeout) clearTimeout(callTimeout);
             }
+          } else if (attempts < 10) {
+            attempts++;
+            callTimeout = setTimeout(tryCall, 1000);
           }
         });
-      attempts++;
-      if (attempts > 10) clearInterval(callInterval); // Stop after 10 tries (~10 seconds)
-    }, 1000);
+    }
+    tryCall();
   });
 };
 
@@ -122,8 +128,9 @@ leaveBtn.onclick = () => {
   joinBtn.disabled = false;
   leaveBtn.disabled = true;
   roomInput.disabled = false;
-  if (callInterval) clearInterval(callInterval);
+  hasConnected = false;
+  if (callTimeout) clearTimeout(callTimeout);
 };
-</script>
+  </script>
 </body>
 </html>
