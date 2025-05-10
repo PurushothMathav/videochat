@@ -44,72 +44,74 @@
   </div>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
-    let localStream, peer, conn, call;
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const joinBtn = document.getElementById('joinBtn');
-    const leaveBtn = document.getElementById('leaveBtn');
-    const roomInput = document.getElementById('roomInput');
+let localStream, peer, call;
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+const joinBtn = document.getElementById('joinBtn');
+const leaveBtn = document.getElementById('leaveBtn');
+const roomInput = document.getElementById('roomInput');
 
-    // Get media
-    async function getMedia() {
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideo.srcObject = localStream;
-    }
+function randomId() {
+  return Math.random().toString(36).substr(2, 6);
+}
 
-    // Join room
-    joinBtn.onclick = async () => {
-      const room = roomInput.value.trim();
-      if (!room) return alert('Enter a room name!');
-      joinBtn.disabled = true;
-      leaveBtn.disabled = false;
-      roomInput.disabled = true;
+joinBtn.onclick = async () => {
+  const room = roomInput.value.trim();
+  if (!room) return alert('Enter a room name!');
+  joinBtn.disabled = true;
+  leaveBtn.disabled = false;
+  roomInput.disabled = true;
 
-      await getMedia();
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  localVideo.srcObject = localStream;
 
-      peer = new Peer(room, {
-        host: 'peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true
+  // Each user gets a unique peer ID
+  const myId = `${room}-${randomId()}`;
+  peer = new Peer(myId, {
+    host: 'peerjs.com',
+    port: 443,
+    path: '/',
+    secure: true
+  });
+
+  peer.on('open', id => {
+    // Listen for incoming calls
+    peer.on('call', incomingCall => {
+      incomingCall.answer(localStream);
+      incomingCall.on('stream', stream => {
+        remoteVideo.srcObject = stream;
       });
+      call = incomingCall;
+    });
 
-      peer.on('open', id => {
-        // Wait for calls
-        peer.on('call', incomingCall => {
-          incomingCall.answer(localStream);
-          incomingCall.on('stream', stream => {
-            remoteVideo.srcObject = stream;
-          });
-        });
-      });
-
-      // Try to call another peer with the same room name (if exists)
-      setTimeout(() => {
-        const remotePeerId = room;
-        if (peer.id === remotePeerId) return; // Don't call self
-        call = peer.call(remotePeerId, localStream);
-        if (call) {
+    // Try to find another peer in the room to call
+    fetch(`https://0.peerjs.com/peers`) // PeerServer public API
+      .then(res => res.json())
+      .then(peers => {
+        // Find another peer in the same room (but not self)
+        const remotePeerId = peers.find(pid => pid.startsWith(room + '-') && pid !== myId);
+        if (remotePeerId) {
+          call = peer.call(remotePeerId, localStream);
           call.on('stream', stream => {
             remoteVideo.srcObject = stream;
           });
         }
-      }, 1500);
-    };
+      });
+  });
+};
 
-    // Leave room
-    leaveBtn.onclick = () => {
-      if (call) call.close();
-      if (peer) peer.destroy();
-      if (localVideo.srcObject) {
-        localVideo.srcObject.getTracks().forEach(track => track.stop());
-        localVideo.srcObject = null;
-      }
-      remoteVideo.srcObject = null;
-      joinBtn.disabled = false;
-      leaveBtn.disabled = true;
-      roomInput.disabled = false;
-    };
-  </script>
+leaveBtn.onclick = () => {
+  if (call) call.close();
+  if (peer) peer.destroy();
+  if (localVideo.srcObject) {
+    localVideo.srcObject.getTracks().forEach(track => track.stop());
+    localVideo.srcObject = null;
+  }
+  remoteVideo.srcObject = null;
+  joinBtn.disabled = false;
+  leaveBtn.disabled = true;
+  roomInput.disabled = false;
+};
+</script>
 </body>
 </html>
