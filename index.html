@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cross-Platform Video Chat</title>
+  <title>Modern Video Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
@@ -43,7 +43,7 @@
     
     .header {
       background: var(--bg-card);
-      padding: 16px;
+      padding: 12px;
       text-align: center;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
       z-index: 10;
@@ -57,7 +57,6 @@
     
     .content {
       flex: 1;
-      padding: 16px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -66,14 +65,15 @@
     }
     
     .share-container {
-      margin-bottom: 16px;
       background: rgba(0, 0, 0, 0.2);
       border-radius: 12px;
-      padding: 16px;
+      padding: 12px;
+      margin: 12px;
+      z-index: 20;
     }
     
     .share-label {
-      font-size: 1rem;
+      font-size: 0.9rem;
       margin-bottom: 8px;
       color: var(--text-secondary);
     }
@@ -86,12 +86,12 @@
     
     .share-link-input {
       flex: 1;
-      padding: 12px;
+      padding: 10px;
       border-radius: 8px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(0, 0, 0, 0.3);
       color: var(--text-light);
-      font-size: 16px;
+      font-size: 14px;
       outline: none;
       -webkit-appearance: none;
     }
@@ -101,8 +101,8 @@
       color: white;
       border: none;
       border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 16px;
+      padding: 10px 14px;
+      font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       white-space: nowrap;
@@ -114,53 +114,63 @@
       transform: translateY(1px);
     }
     
-    .videos-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .video-container {
+      position: relative;
       flex: 1;
       overflow: hidden;
-      max-height: calc(100vh - 220px);
+      background: #000;
     }
     
-    .video-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 16px;
+    .main-video-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
       height: 100%;
     }
     
-    .video-box {
-      background: rgba(0, 0, 0, 0.4);
+    .pip-video-wrapper {
+      position: absolute;
+      width: 30%;
+      max-width: 200px;
+      aspect-ratio: 3/4;
+      right: 16px;
+      bottom: 16px;
       border-radius: 12px;
       overflow: hidden;
-      position: relative;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      z-index: 5;
+      transition: all 0.3s ease;
     }
     
-    .video-box.main-video {
-      grid-row: span 2;
-      grid-column: span 1;
+    .pip-video-wrapper:active {
+      opacity: 0.8;
+    }
+    
+    #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    #localVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1); /* Mirror local video */
     }
     
     .video-label {
       position: absolute;
-      bottom: 16px;
-      left: 16px;
+      bottom: 10px;
+      left: 10px;
       background: rgba(0, 0, 0, 0.6);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 14px;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 12px;
       font-weight: 500;
-    }
-    
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 12px;
-      background: #000;
+      z-index: 2;
     }
     
     .controls {
@@ -169,9 +179,7 @@
       padding: 16px;
       gap: 16px;
       background: var(--bg-card);
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
       z-index: 10;
-      flex-wrap: wrap;
     }
     
     .ctrl-btn {
@@ -179,8 +187,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      width: 64px;
-      height: 64px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.1);
       color: var(--text-light);
@@ -190,12 +198,12 @@
     }
     
     .ctrl-btn .icon {
-      font-size: 24px;
+      font-size: 22px;
       margin-bottom: 4px;
     }
     
     .ctrl-btn .label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
     }
     
@@ -212,12 +220,31 @@
       transform: scale(0.95);
     }
     
+    .switch-camera-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      z-index: 5;
+      cursor: pointer;
+    }
+    
     #step1 {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100%;
+      padding: 20px;
     }
     
     .start-btn {
@@ -230,6 +257,9 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     
     .start-btn:active {
@@ -238,38 +268,27 @@
     }
     
     .connecting-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       text-align: center;
       font-size: 18px;
-      color: var(--text-secondary);
-      margin: 24px 0;
+      color: var(--text-light);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 16px 24px;
+      border-radius: 12px;
+      z-index: 5;
     }
     
-    /* For desktop and larger devices */
-    @media (min-width: 768px) {
-      .app-container {
-        max-width: 1200px;
-        height: 100vh;
-        margin: 0 auto;
-      }
-      
-      .content {
-        padding: 24px;
-      }
-      
-      .video-grid {
-        grid-template-columns: 70% 30%;
-        grid-template-rows: 1fr;
-        height: 100%;
-      }
-      
-      .video-box.main-video {
-        grid-row: span 1;
-      }
-      
-      .ctrl-btn {
-        width: 70px;
-        height: 70px;
-      }
+    .connecting-icon {
+      margin-right: 10px;
+      animation: spin 1.5s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
     
     /* For smaller phones */
@@ -278,44 +297,28 @@
         font-size: 1.2rem;
       }
       
-      .content {
-        padding: 12px;
-      }
-      
       .ctrl-btn {
-        width: 56px;
-        height: 56px;
+        width: 50px;
+        height: 50px;
       }
       
       .ctrl-btn .icon {
-        font-size: 20px;
+        font-size: 18px;
       }
       
       .ctrl-btn .label {
-        font-size: 10px;
+        font-size: 9px;
       }
       
-      .copy-btn {
-        padding: 12px;
-        font-size: 14px;
-      }
-      
-      .share-link-input {
-        font-size: 14px;
+      .pip-video-wrapper {
+        width: 35%;
+        right: 10px;
+        bottom: 10px;
       }
     }
     
     /* For landscape mode */
     @media (max-height: 500px) and (orientation: landscape) {
-      .videos-container {
-        max-height: calc(100vh - 180px);
-      }
-      
-      .video-grid {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr;
-      }
-      
       .controls {
         padding: 8px;
       }
@@ -326,11 +329,16 @@
       }
       
       .header {
-        padding: 8px;
+        padding: 6px;
       }
       
       .header h1 {
         font-size: 1.2rem;
+      }
+      
+      .pip-video-wrapper {
+        width: 20%;
+        aspect-ratio: 4/3;
       }
     }
   </style>
@@ -359,22 +367,24 @@
           </div>
         </div>
         
-        <div id="guestInfo" style="display:none;">
-          <div class="connecting-msg">
-            <i class="fas fa-spinner fa-spin"></i> Connecting to host...
+        <div class="video-container">
+          <div class="main-video-wrapper">
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="video-label" id="remoteLabel">Remote</div>
           </div>
-        </div>
-        
-        <div class="videos-container">
-          <div class="video-grid">
-            <div class="video-box main-video">
-              <video id="remoteVideo" autoplay playsinline></video>
-              <div class="video-label">Remote</div>
-            </div>
-            <div class="video-box">
-              <video id="localVideo" autoplay muted playsinline></video>
-              <div class="video-label">You</div>
-            </div>
+          
+          <div class="pip-video-wrapper" id="pipContainer">
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="video-label">You</div>
+          </div>
+          
+          <button class="switch-camera-btn" id="switchCamBtn" style="display:none;">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+          
+          <div id="connecting" class="connecting-msg" style="display:none;">
+            <i class="fas fa-spinner connecting-icon"></i>
+            Connecting...
           </div>
         </div>
       </div>
@@ -389,6 +399,10 @@
         <i class="fas fa-video icon"></i>
         <span class="label">Camera</span>
       </button>
+      <button id="flipBtn" class="ctrl-btn">
+        <i class="fas fa-exchange-alt icon"></i>
+        <span class="label">Flip</span>
+      </button>
       <button id="endBtn" class="ctrl-btn end-call">
         <i class="fas fa-phone-slash icon"></i>
         <span class="label">End</span>
@@ -402,18 +416,186 @@
     const endBtn = document.getElementById('endBtn');
     const micBtn = document.getElementById('micBtn');
     const camBtn = document.getElementById('camBtn');
+    const flipBtn = document.getElementById('flipBtn');
+    const switchCamBtn = document.getElementById('switchCamBtn');
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
+    const connectingMsg = document.getElementById('connecting');
     const controlsContainer = document.getElementById('controlsContainer');
     const hostInfo = document.getElementById('hostInfo');
-    const guestInfo = document.getElementById('guestInfo');
     const shareLink = document.getElementById('shareLink');
     const copyBtn = document.getElementById('copyBtn');
     const localVideo = document.getElementById('localVideo');
     const remoteVideo = document.getElementById('remoteVideo');
+    const pipContainer = document.getElementById('pipContainer');
+    const remoteLabel = document.getElementById('remoteLabel');
 
     let peer, localStream, call, isHost = false;
     let micOn = true, camOn = true;
+    let facingMode = 'user'; // front camera by default
+    let videoSwapped = false; // Track if local/remote videos are swapped in display
+    
+    // Make PIP video draggable
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
+
+    pipContainer.addEventListener('touchstart', function(e) {
+      isDragging = true;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startLeft = parseInt(window.getComputedStyle(pipContainer).left);
+      startTop = parseInt(window.getComputedStyle(pipContainer).top);
+      e.preventDefault();
+    });
+
+    pipContainer.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = parseInt(window.getComputedStyle(pipContainer).left) || 0;
+      startTop = parseInt(window.getComputedStyle(pipContainer).top) || 0;
+      e.preventDefault();
+    });
+
+    document.addEventListener('touchmove', function(e) {
+      if (!isDragging) return;
+      const deltaX = e.touches[0].clientX - startX;
+      const deltaY = e.touches[0].clientY - startY;
+      
+      // Calculate new position but ensure it stays within visible area
+      const containerRect = document.querySelector('.video-container').getBoundingClientRect();
+      const pipRect = pipContainer.getBoundingClientRect();
+      
+      let newLeft = startLeft + deltaX;
+      let newTop = startTop + deltaY;
+      
+      // Boundary checks
+      if (newLeft < 0) newLeft = 0;
+      if (newTop < 0) newTop = 0;
+      if (newLeft > containerRect.width - pipRect.width) 
+        newLeft = containerRect.width - pipRect.width;
+      if (newTop > containerRect.height - pipRect.height) 
+        newTop = containerRect.height - pipRect.height;
+      
+      pipContainer.style.right = 'auto';
+      pipContainer.style.bottom = 'auto';
+      pipContainer.style.left = newLeft + 'px';
+      pipContainer.style.top = newTop + 'px';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+      
+      const containerRect = document.querySelector('.video-container').getBoundingClientRect();
+      const pipRect = pipContainer.getBoundingClientRect();
+      
+      let newLeft = startLeft + deltaX;
+      let newTop = startTop + deltaY;
+      
+      if (newLeft < 0) newLeft = 0;
+      if (newTop < 0) newTop = 0;
+      if (newLeft > containerRect.width - pipRect.width) 
+        newLeft = containerRect.width - pipRect.width;
+      if (newTop > containerRect.height - pipRect.height) 
+        newTop = containerRect.height - pipRect.height;
+      
+      pipContainer.style.right = 'auto';
+      pipContainer.style.bottom = 'auto';
+      pipContainer.style.left = newLeft + 'px';
+      pipContainer.style.top = newTop + 'px';
+    });
+
+    document.addEventListener('touchend', function() {
+      isDragging = false;
+    });
+
+    document.addEventListener('mouseup', function() {
+      isDragging = false;
+    });
+
+    // Double tap to swap main video and PIP video
+    let lastTap = 0;
+    pipContainer.addEventListener('click', function() {
+      const now = new Date().getTime();
+      const timeDiff = now - lastTap;
+      if (timeDiff < 300 && timeDiff > 0) {
+        // Double tap detected
+        swapVideos();
+      }
+      lastTap = now;
+    });
+
+    // Swap main video and PIP video
+    function swapVideos() {
+      videoSwapped = !videoSwapped;
+      
+      if (videoSwapped) {
+        // Put local video in main view, remote in PIP
+        const mainVideo = document.querySelector('.main-video-wrapper video');
+        const pipVideo = document.querySelector('.pip-video-wrapper video');
+        
+        document.querySelector('.main-video-wrapper').appendChild(localVideo);
+        document.querySelector('.pip-video-wrapper').appendChild(remoteVideo);
+        
+        remoteLabel.textContent = "Remote";
+      } else {
+        // Put remote video in main view, local in PIP (default)
+        document.querySelector('.main-video-wrapper').appendChild(remoteVideo);
+        document.querySelector('.pip-video-wrapper').appendChild(localVideo);
+      }
+    }
+
+    // Switch camera button
+    flipBtn.onclick = async () => {
+      if (!localStream) return;
+      
+      // Toggle facing mode
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      
+      try {
+        // Stop all tracks before requesting new stream
+        localStream.getTracks().forEach(track => track.stop());
+        
+        // Get new stream with different camera
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: facingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: true
+        });
+        
+        // Update the video element
+        if (videoSwapped) {
+          document.querySelector('.main-video-wrapper video').srcObject = localStream;
+        } else {
+          document.querySelector('.pip-video-wrapper video').srcObject = localStream;
+        }
+        
+        // Update the call's video track
+        if (call) {
+          const videoSender = call.peerConnection.getSenders().find(s => 
+            s.track && s.track.kind === 'video'
+          );
+          
+          if (videoSender) {
+            videoSender.replaceTrack(localStream.getVideoTracks()[0]);
+          }
+        }
+        
+        // Apply current mic and camera state
+        localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+        localStream.getVideoTracks().forEach(track => track.enabled = camOn);
+        
+      } catch (err) {
+        console.error('Error switching camera:', err);
+        alert('Failed to switch camera: ' + err.message);
+      }
+    };
 
     // Ensure the browser supports all required features
     function checkBrowserSupport() {
@@ -430,7 +612,7 @@
           video: { 
             width: { ideal: 1280 },
             height: { ideal: 720 },
-            facingMode: 'user'
+            facingMode: facingMode
           }, 
           audio: true 
         });
@@ -449,13 +631,23 @@
       if (!checkBrowserSupport()) return;
       
       try {
-        localStream = await getMedia();
-        
         step1.style.display = 'none';
         step2.style.display = '';
-        controlsContainer.style.display = '';
+        connectingMsg.style.display = 'flex';
+        
+        localStream = await getMedia();
+        
+        connectingMsg.style.display = 'none';
+        controlsContainer.style.display = 'flex';
         
         localVideo.srcObject = localStream;
+
+        // Check if device has multiple cameras
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        if (videoDevices.length > 1) {
+          switchCamBtn.style.display = 'flex';
+        }
 
         // Check if joining as guest (with ?host=peerid)
         const urlParams = new URLSearchParams(window.location.search);
@@ -463,7 +655,7 @@
         
         if (hostId) {
           // Guest mode
-          guestInfo.style.display = '';
+          connectingMsg.style.display = 'flex';
           peer = new Peer({
             config: {
               'iceServers': [
@@ -477,7 +669,7 @@
             call = peer.call(hostId, localStream);
             call.on('stream', stream => {
               remoteVideo.srcObject = stream;
-              guestInfo.style.display = 'none';
+              connectingMsg.style.display = 'none';
             });
             
             call.on('error', err => {
@@ -494,6 +686,7 @@
           peer.on('error', err => {
             console.error('Peer error:', err);
             alert('Connection error: ' + err.message);
+            connectingMsg.style.display = 'none';
           });
           
         } else {
@@ -515,6 +708,8 @@
             const url = new URL(window.location.href);
             url.searchParams.set('host', id);
             shareLink.value = url.toString();
+            connectingMsg.innerHTML = '<i class="fas fa-circle-notch fa-spin connecting-icon"></i> Waiting for someone to join...';
+            connectingMsg.style.display = 'flex';
           });
           
           peer.on('call', incomingCall => {
@@ -523,6 +718,8 @@
             
             incomingCall.on('stream', stream => {
               remoteVideo.srcObject = stream;
+              connectingMsg.style.display = 'none';
+              hostInfo.style.display = 'none'; // Hide share link once connected
             });
             
             incomingCall.on('close', () => {
@@ -538,11 +735,13 @@
           peer.on('error', err => {
             console.error('Peer error:', err);
             alert('Connection error: ' + err.message);
+            connectingMsg.style.display = 'none';
           });
         }
         
       } catch (err) {
         console.error('Failed to start video chat:', err);
+        connectingMsg.style.display = 'none';
         step1.style.display = '';
         step2.style.display = 'none';
         controlsContainer.style.display = 'none';
@@ -645,15 +844,13 @@
 
     // Handle device orientation changes for better layout
     window.addEventListener('orientationchange', () => {
-      // Adjust UI based on orientation if needed
+      // Reset PIP position when orientation changes
       setTimeout(() => {
-        // Add a small delay to ensure the resize event has completed
-        if (window.innerHeight < 500) {
-          // Landscape orientation on mobile
-        } else {
-          // Portrait or desktop
-        }
-      }, 100);
+        pipContainer.style.left = 'auto';
+        pipContainer.style.top = 'auto';
+        pipContainer.style.right = '16px';
+        pipContainer.style.bottom = '16px';
+      }, 300);
     });
 
     // Handle errors gracefully
