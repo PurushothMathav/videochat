@@ -673,7 +673,7 @@
                     roomId = roomIdInput.value.trim() || generateRoomId();
                     
                     // Update share link
-                    const shareUrl = `${window.location.origin}?room=${roomId}`;
+                    const shareUrl = `${window.location.origin}/videochat/?room=${roomId}`;
                     shareLink.textContent = shareUrl;
 
                     const myPeerId = `${roomId}-${Math.random().toString(36).substr(2, 6)}`;
@@ -783,11 +783,11 @@
                 
                 // Reset room ID
                 roomId = generateRoomId();
-                const shareUrl = `${window.location.origin}?room=${roomId}`;
+                const shareUrl = `${window.location.origin}/videochat/?room=${roomId}`;
                 shareLink.textContent = shareUrl;
                 
                 // Update URL without reloading
-                history.pushState({}, '', `?room=${roomId}`);
+                history.pushState({}, '', `/videochat/?room=${roomId}`);
             }
 
             // Toggle audio mute
