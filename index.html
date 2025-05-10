@@ -677,10 +677,7 @@
                     shareLink.textContent = shareUrl;
 
                     // Initialize PeerJS
-                    peer = new Peer(undefined, {
-                        host: 'peerjs-server.herokuapp.com',
-                        secure: true
-                    });
+                    peer = new Peer();
 
                     peer.on('open', (id) => {
                         console.log('My peer ID is: ' + id);
