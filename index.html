@@ -11,6 +11,9 @@
     input, button { padding: 8px; border-radius: 4px; border: none; margin: 0 5px; }
     button { background: #ff4500; color: #fff; cursor: pointer; }
     .link { background: #111; color: #fff; padding: 8px; border-radius: 4px; word-break: break-all; }
+    .controls { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
+    .btn-on { background: #ff4500; }
+    .btn-off { background: #555; }
   </style>
 </head>
 <body>
@@ -37,13 +40,19 @@
           <video id="remoteVideo" autoplay playsinline></video>
         </div>
       </div>
-      <button id="endBtn">End Call</button>
+      <div class="controls">
+        <button id="micBtn" class="btn-on">Mic On</button>
+        <button id="camBtn" class="btn-on">Cam On</button>
+        <button id="endBtn">End Call</button>
+      </div>
     </div>
   </div>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
     const startBtn = document.getElementById('startBtn');
     const endBtn = document.getElementById('endBtn');
+    const micBtn = document.getElementById('micBtn');
+    const camBtn = document.getElementById('camBtn');
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
     const hostInfo = document.getElementById('hostInfo');
@@ -53,6 +62,7 @@
     const remoteVideo = document.getElementById('remoteVideo');
 
     let peer, localStream, call, isHost = false;
+    let micOn = true, camOn = true;
 
     async function getMedia() {
       return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -96,6 +106,20 @@
           call = incomingCall;
         });
       }
+    };
+
+    micBtn.onclick = () => {
+      micOn = !micOn;
+      localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+      micBtn.textContent = micOn ? 'Mic On' : 'Mic Off';
+      micBtn.className = micOn ? 'btn-on' : 'btn-off';
+    };
+
+    camBtn.onclick = () => {
+      camOn = !camOn;
+      localStream.getVideoTracks().forEach(track => track.enabled = camOn);
+      camBtn.textContent = camOn ? 'Cam On' : 'Cam Off';
+      camBtn.className = camOn ? 'btn-on' : 'btn-off';
     };
 
     endBtn.onclick = () => {
