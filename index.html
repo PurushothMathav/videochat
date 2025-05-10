@@ -2,127 +2,400 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PeerJS 1-to-1 Video Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cross-Platform Video Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
-    body { background: #222; color: #fff; font-family: Arial, sans-serif; margin: 0; }
-    .container { max-width: 700px; margin: 40px auto; padding: 24px; background: #333; border-radius: 14px; box-shadow: 0 4px 24px #0004; }
-    h2 { margin-top: 0; }
-    .share-row { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; }
+    :root {
+      --primary-color: #2563eb;
+      --bg-dark: #111827;
+      --bg-card: #1f2937;
+      --text-light: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --danger: #ef4444;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-height: 100vh;
+      width: 100%;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: var(--bg-card);
+      padding: 16px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .content {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .share-container {
+      margin-bottom: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    
+    .share-label {
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+    
+    .share-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
     .share-link-input {
       flex: 1;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      background: #181818;
-      color: #fff;
-      font-size: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text-light);
+      font-size: 16px;
       outline: none;
+      -webkit-appearance: none;
     }
+    
     .copy-btn {
-      background: #ff4500;
-      color: #fff;
+      background: var(--primary-color);
+      color: white;
       border: none;
-      border-radius: 6px;
-      padding: 10px 16px;
-      font-size: 15px;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: 500;
       cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
     }
-    .videos {
+    
+    .copy-btn:active {
+      background: #1d4ed8;
+      transform: translateY(1px);
+    }
+    
+    .videos-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      flex: 1;
+      overflow: hidden;
+      max-height: calc(100vh - 220px);
+    }
+    
+    .video-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-      margin: 18px 0;
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+      height: 100%;
     }
+    
     .video-box {
-      background: #111;
-      border-radius: 10px;
-      padding: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .video-box.main-video {
+      grid-row: span 2;
+      grid-column: span 1;
+    }
+    
+    .video-label {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #000;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      gap: 16px;
+      background: var(--bg-card);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+    
+    .ctrl-btn {
       display: flex;
       flex-direction: column;
       align-items: center;
-    }
-    .video-label {
-      margin-bottom: 6px;
-      font-size: 15px;
-      color: #bbb;
-    }
-    video {
-      width: 100%;
-      aspect-ratio: 4/3;
-      background: #000;
-      border-radius: 8px;
-      max-height: 260px;
-      object-fit: cover;
-    }
-    .controls {
-      display: flex;
-      gap: 12px;
       justify-content: center;
-      margin-top: 10px;
-      flex-wrap: wrap;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-light);
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .ctrl-btn {
-      background: #ff4500;
-      color: #fff;
+    
+    .ctrl-btn .icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+    }
+    
+    .ctrl-btn .label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .ctrl-btn.off {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--danger);
+    }
+    
+    .ctrl-btn.end-call {
+      background: var(--danger);
+    }
+    
+    .ctrl-btn:active {
+      transform: scale(0.95);
+    }
+    
+    #step1 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+    
+    .start-btn {
+      background: var(--primary-color);
+      color: white;
       border: none;
       border-radius: 8px;
-      padding: 12px 20px;
-      font-size: 16px;
+      padding: 16px 32px;
+      font-size: 18px;
+      font-weight: 600;
       cursor: pointer;
-      min-width: 90px;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
-    .ctrl-btn.off {
-      background: #555;
-      color: #fff;
+    
+    .start-btn:active {
+      transform: scale(0.98);
+      background: #1d4ed8;
     }
-    @media (max-width: 700px) {
-      .container { max-width: 98vw; padding: 8px; }
-      .videos { grid-template-columns: 1fr; gap: 12px; }
-      video { max-height: 40vw; }
-      .ctrl-btn { font-size: 15px; padding: 10px 0; min-width: 80px; }
+    
+    .connecting-msg {
+      text-align: center;
+      font-size: 18px;
+      color: var(--text-secondary);
+      margin: 24px 0;
     }
-    @media (max-width: 400px) {
-      .ctrl-btn { font-size: 14px; padding: 8px 0; min-width: 70px; }
-      video { max-height: 32vw; }
+    
+    /* For desktop and larger devices */
+    @media (min-width: 768px) {
+      .app-container {
+        max-width: 1200px;
+        height: 100vh;
+        margin: 0 auto;
+      }
+      
+      .content {
+        padding: 24px;
+      }
+      
+      .video-grid {
+        grid-template-columns: 70% 30%;
+        grid-template-rows: 1fr;
+        height: 100%;
+      }
+      
+      .video-box.main-video {
+        grid-row: span 1;
+      }
+      
+      .ctrl-btn {
+        width: 70px;
+        height: 70px;
+      }
+    }
+    
+    /* For smaller phones */
+    @media (max-width: 380px) {
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .content {
+        padding: 12px;
+      }
+      
+      .ctrl-btn {
+        width: 56px;
+        height: 56px;
+      }
+      
+      .ctrl-btn .icon {
+        font-size: 20px;
+      }
+      
+      .ctrl-btn .label {
+        font-size: 10px;
+      }
+      
+      .copy-btn {
+        padding: 12px;
+        font-size: 14px;
+      }
+      
+      .share-link-input {
+        font-size: 14px;
+      }
+    }
+    
+    /* For landscape mode */
+    @media (max-height: 500px) and (orientation: landscape) {
+      .videos-container {
+        max-height: calc(100vh - 180px);
+      }
+      
+      .video-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+      }
+      
+      .controls {
+        padding: 8px;
+      }
+      
+      .ctrl-btn {
+        width: 48px;
+        height: 48px;
+      }
+      
+      .header {
+        padding: 8px;
+      }
+      
+      .header h1 {
+        font-size: 1.2rem;
+      }
     }
   </style>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <div class="container">
-    <h2>PeerJS 1-to-1 Video Chat</h2>
-    <div id="step1">
-      <button class="ctrl-btn" id="startBtn">Start Video Chat</button>
+  <div class="app-container">
+    <div class="header">
+      <h1>Video Chat</h1>
     </div>
-    <div id="step2" style="display:none;">
-      <div id="hostInfo" style="display:none;">
-        <p>Share this link with your friend:</p>
-        <div class="share-row">
-          <input id="shareLink" class="share-link-input" readonly>
-          <button class="copy-btn" id="copyBtn">Copy</button>
+    
+    <div class="content">
+      <div id="step1">
+        <button class="start-btn" id="startBtn">
+          <i class="fas fa-video"></i> Start Video Chat
+        </button>
+      </div>
+      
+      <div id="step2" style="display:none;">
+        <div id="hostInfo" style="display:none;" class="share-container">
+          <div class="share-label">Share this link with your friend:</div>
+          <div class="share-row">
+            <input id="shareLink" class="share-link-input" readonly>
+            <button class="copy-btn" id="copyBtn">Copy</button>
+          </div>
+        </div>
+        
+        <div id="guestInfo" style="display:none;">
+          <div class="connecting-msg">
+            <i class="fas fa-spinner fa-spin"></i> Connecting to host...
+          </div>
+        </div>
+        
+        <div class="videos-container">
+          <div class="video-grid">
+            <div class="video-box main-video">
+              <video id="remoteVideo" autoplay playsinline></video>
+              <div class="video-label">Remote</div>
+            </div>
+            <div class="video-box">
+              <video id="localVideo" autoplay muted playsinline></video>
+              <div class="video-label">You</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div id="guestInfo" style="display:none;">
-        <p>Connecting to host...</p>
-      </div>
-      <div class="videos">
-        <div class="video-box">
-          <div class="video-label">You</div>
-          <video id="localVideo" autoplay muted playsinline></video>
-        </div>
-        <div class="video-box">
-          <div class="video-label">Remote</div>
-          <video id="remoteVideo" autoplay playsinline></video>
-        </div>
-      </div>
-      <div class="controls">
-        <button id="micBtn" class="ctrl-btn">Mic On</button>
-        <button id="camBtn" class="ctrl-btn">Cam On</button>
-        <button id="endBtn" class="ctrl-btn">End Call</button>
-      </div>
+    </div>
+    
+    <div id="controlsContainer" class="controls" style="display:none;">
+      <button id="micBtn" class="ctrl-btn">
+        <i class="fas fa-microphone icon"></i>
+        <span class="label">Mic</span>
+      </button>
+      <button id="camBtn" class="ctrl-btn">
+        <i class="fas fa-video icon"></i>
+        <span class="label">Camera</span>
+      </button>
+      <button id="endBtn" class="ctrl-btn end-call">
+        <i class="fas fa-phone-slash icon"></i>
+        <span class="label">End</span>
+      </button>
     </div>
   </div>
+
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script>
     const startBtn = document.getElementById('startBtn');
@@ -131,6 +404,7 @@
     const camBtn = document.getElementById('camBtn');
     const step1 = document.getElementById('step1');
     const step2 = document.getElementById('step2');
+    const controlsContainer = document.getElementById('controlsContainer');
     const hostInfo = document.getElementById('hostInfo');
     const guestInfo = document.getElementById('guestInfo');
     const shareLink = document.getElementById('shareLink');
@@ -141,81 +415,256 @@
     let peer, localStream, call, isHost = false;
     let micOn = true, camOn = true;
 
+    // Ensure the browser supports all required features
+    function checkBrowserSupport() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Your browser does not support video calls. Please use a modern browser like Chrome or Firefox.');
+        return false;
+      }
+      return true;
+    }
+
     async function getMedia() {
-      return await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      try {
+        return await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          }, 
+          audio: true 
+        });
+      } catch (err) {
+        console.error('Failed to get media devices:', err);
+        if (err.name === 'NotAllowedError') {
+          alert('Please allow camera and microphone access to use the video chat.');
+        } else {
+          alert('Error accessing camera or microphone: ' + err.message);
+        }
+        throw err;
+      }
     }
 
     startBtn.onclick = async () => {
-      step1.style.display = 'none';
-      step2.style.display = '';
-      localStream = await getMedia();
-      localVideo.srcObject = localStream;
+      if (!checkBrowserSupport()) return;
+      
+      try {
+        localStream = await getMedia();
+        
+        step1.style.display = 'none';
+        step2.style.display = '';
+        controlsContainer.style.display = '';
+        
+        localVideo.srcObject = localStream;
 
-      // Check if joining as guest (with ?host=peerid)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hostId = urlParams.get('host');
-      if (hostId) {
-        guestInfo.style.display = '';
-        peer = new Peer();
-        peer.on('open', id => {
-          call = peer.call(hostId, localStream);
-          call.on('stream', stream => {
-            remoteVideo.srcObject = stream;
+        // Check if joining as guest (with ?host=peerid)
+        const urlParams = new URLSearchParams(window.location.search);
+        const hostId = urlParams.get('host');
+        
+        if (hostId) {
+          // Guest mode
+          guestInfo.style.display = '';
+          peer = new Peer({
+            config: {
+              'iceServers': [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+              ]
+            }
           });
-        });
-        peer.on('call', incomingCall => {
-          incomingCall.answer(localStream);
-        });
-      } else {
-        isHost = true;
-        hostInfo.style.display = '';
-        peer = new Peer();
-        peer.on('open', id => {
-          shareLink.value = `${window.location.origin}${window.location.pathname}?host=${id}`;
-        });
-        peer.on('call', incomingCall => {
-          incomingCall.answer(localStream);
-          incomingCall.on('stream', stream => {
-            remoteVideo.srcObject = stream;
+          
+          peer.on('open', id => {
+            call = peer.call(hostId, localStream);
+            call.on('stream', stream => {
+              remoteVideo.srcObject = stream;
+              guestInfo.style.display = 'none';
+            });
+            
+            call.on('error', err => {
+              console.error('Call error:', err);
+              alert('Error connecting to host: ' + err.message);
+            });
+            
+            call.on('close', () => {
+              alert('Call ended by host');
+              endCall();
+            });
           });
-          call = incomingCall;
-        });
+          
+          peer.on('error', err => {
+            console.error('Peer error:', err);
+            alert('Connection error: ' + err.message);
+          });
+          
+        } else {
+          // Host mode
+          isHost = true;
+          hostInfo.style.display = '';
+          
+          peer = new Peer({
+            config: {
+              'iceServers': [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+              ]
+            }
+          });
+          
+          peer.on('open', id => {
+            // Generate link with full URL
+            const url = new URL(window.location.href);
+            url.searchParams.set('host', id);
+            shareLink.value = url.toString();
+          });
+          
+          peer.on('call', incomingCall => {
+            call = incomingCall;
+            incomingCall.answer(localStream);
+            
+            incomingCall.on('stream', stream => {
+              remoteVideo.srcObject = stream;
+            });
+            
+            incomingCall.on('close', () => {
+              endCall();
+            });
+            
+            incomingCall.on('error', err => {
+              console.error('Call error:', err);
+              alert('Call error: ' + err.message);
+            });
+          });
+          
+          peer.on('error', err => {
+            console.error('Peer error:', err);
+            alert('Connection error: ' + err.message);
+          });
+        }
+        
+      } catch (err) {
+        console.error('Failed to start video chat:', err);
+        step1.style.display = '';
+        step2.style.display = 'none';
+        controlsContainer.style.display = 'none';
       }
     };
 
+    function updateMicButton() {
+      if (micOn) {
+        micBtn.className = 'ctrl-btn';
+        micBtn.innerHTML = '<i class="fas fa-microphone icon"></i><span class="label">Mic</span>';
+      } else {
+        micBtn.className = 'ctrl-btn off';
+        micBtn.innerHTML = '<i class="fas fa-microphone-slash icon"></i><span class="label">Mic</span>';
+      }
+    }
+
+    function updateCamButton() {
+      if (camOn) {
+        camBtn.className = 'ctrl-btn';
+        camBtn.innerHTML = '<i class="fas fa-video icon"></i><span class="label">Camera</span>';
+      } else {
+        camBtn.className = 'ctrl-btn off';
+        camBtn.innerHTML = '<i class="fas fa-video-slash icon"></i><span class="label">Camera</span>';
+      }
+    }
+
     micBtn.onclick = () => {
       micOn = !micOn;
-      localStream.getAudioTracks().forEach(track => track.enabled = micOn);
-      micBtn.textContent = micOn ? 'Mic On' : 'Mic Off';
-      micBtn.className = micOn ? 'ctrl-btn' : 'ctrl-btn off';
+      if (localStream) {
+        localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+      }
+      updateMicButton();
     };
 
     camBtn.onclick = () => {
       camOn = !camOn;
-      localStream.getVideoTracks().forEach(track => track.enabled = camOn);
-      camBtn.textContent = camOn ? 'Cam On' : 'Cam Off';
-      camBtn.className = camOn ? 'ctrl-btn' : 'ctrl-btn off';
+      if (localStream) {
+        localStream.getVideoTracks().forEach(track => track.enabled = camOn);
+      }
+      updateCamButton();
     };
 
-    endBtn.onclick = () => {
+    function endCall() {
       if (call) call.close();
       if (peer) peer.destroy();
       if (localStream) localStream.getTracks().forEach(t => t.stop());
-      window.location.href = window.location.pathname; // reload to reset
+      
+      // Reload page to reset app state
+      window.location.reload();
+    }
+
+    endBtn.onclick = endCall;
+
+    // Copy link functionality with clipboard API if available
+    copyBtn.onclick = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareLink.value)
+          .then(() => {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => copyBtn.textContent = 'Copy', 1200);
+          })
+          .catch(err => {
+            console.error('Could not copy text: ', err);
+            // Fallback to old method
+            shareLink.select();
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => copyBtn.textContent = 'Copy', 1200);
+          });
+      } else {
+        // Fallback for older browsers
+        shareLink.select();
+        shareLink.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = 'Copy', 1200);
+      }
     };
 
-    // Easy copy for mobile/desktop
-    copyBtn.onclick = () => {
-      shareLink.select();
-      shareLink.setSelectionRange(0, 99999);
-      document.execCommand('copy');
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => copyBtn.textContent = 'Copy', 1200);
-    };
     // On tap, select all for easy manual copy
     shareLink.onclick = () => {
       shareLink.select();
       shareLink.setSelectionRange(0, 99999);
+    };
+
+    // Handle page visibility changes to optimize resource usage
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Page is hidden, might want to pause video or reduce quality
+        if (localStream && localStream.getVideoTracks().length > 0) {
+          // Just keep the stream alive but could optimize more
+        }
+      } else {
+        // Page is visible again
+        if (localStream && localStream.getVideoTracks().length > 0) {
+          // Resume normal quality if needed
+        }
+      }
+    });
+
+    // Handle device orientation changes for better layout
+    window.addEventListener('orientationchange', () => {
+      // Adjust UI based on orientation if needed
+      setTimeout(() => {
+        // Add a small delay to ensure the resize event has completed
+        if (window.innerHeight < 500) {
+          // Landscape orientation on mobile
+        } else {
+          // Portrait or desktop
+        }
+      }, 100);
+    });
+
+    // Handle errors gracefully
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error('Global error:', error);
+      // Avoid showing too many alerts to users
+      if (!window.hasShownErrorAlert) {
+        window.hasShownErrorAlert = true;
+        alert('An error occurred. You may need to refresh the page.');
+      }
+      return true;
     };
   </script>
 </body>
