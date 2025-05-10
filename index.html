@@ -676,8 +676,8 @@
                     const shareUrl = `${window.location.origin}?room=${roomId}`;
                     shareLink.textContent = shareUrl;
 
-                    // Initialize PeerJS
-                    peer = new Peer();
+                    const myPeerId = `${roomId}-${Math.random().toString(36).substr(2, 6)}`;
+                    peer = new Peer(myPeerId);
 
                     peer.on('open', (id) => {
                         console.log('My peer ID is: ' + id);
@@ -714,24 +714,31 @@
 
             // Connect to a specific room
             function connectToRoom() {
-                // Simulate connecting to a signaling server to find peers in the room
-                // In a real app, you would use a backend service for this
-                
-                // For demo purposes, we'll check if there's a room ID in the URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const urlRoomId = urlParams.get('room');
-                
-                if (urlRoomId && urlRoomId !== roomId) {
-                    // Connect to the peer in this room
-                    const call = peer.call(urlRoomId, localStream, {
-                        metadata: { name: username.value }
-                    });
-                    
-                    if (call) {
-                        setupCall(call);
+    // Find other peers in the same room (except self)
+    let attempts = 0;
+    function tryConnect() {
+        fetch('https://0.peerjs.com/peers')
+            .then(res => res.json())
+            .then(peers => {
+                const roomPeers = peers.filter(pid => pid.startsWith(roomId + '-') && pid !== myPeerId);
+                if (roomPeers.length > 0) {
+                    // Deterministic: only the user with the highest ID calls the lowest
+                    const allPeers = [myPeerId, ...roomPeers].sort();
+                    if (myPeerId === allPeers[allPeers.length - 1]) {
+                        const remotePeerId = allPeers[0];
+                        const call = peer.call(remotePeerId, localStream, {
+                            metadata: { name: username.value }
+                        });
+                        if (call) setupCall(call);
                     }
+                } else if (attempts < 10) {
+                    attempts++;
+                    setTimeout(tryConnect, 1000);
                 }
-            }
+            });
+    }
+    tryConnect();
+}
 
             // Set up a call
             function setupCall(call) {
