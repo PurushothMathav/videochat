@@ -43,7 +43,7 @@
     </div>
   </div>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <script>
+<script>
 let localStream, peer, call, callTimeout, hasConnected = false;
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
@@ -57,7 +57,7 @@ function randomId() {
 
 joinBtn.onclick = async () => {
   const room = roomInput.value.trim();
-  if (!room) return alert('Enter a room name!');
+  if (!room) return alert('Enter Room Name!');
   joinBtn.disabled = true;
   leaveBtn.disabled = false;
   roomInput.disabled = true;
@@ -77,7 +77,7 @@ joinBtn.onclick = async () => {
 
   // Always accept incoming calls
   peer.on('call', incomingCall => {
-    if (hasConnected) return; // Already connected
+    if (hasConnected) return;
     hasConnected = true;
     incomingCall.answer(localStream);
     incomingCall.on('stream', stream => {
@@ -95,17 +95,21 @@ joinBtn.onclick = async () => {
       fetch(`https://0.peerjs.com/peers`)
         .then(res => res.json())
         .then(peers => {
+          // Find all peers in the same room (except self)
           const roomPeers = peers.filter(pid => pid.startsWith(room + '-') && pid !== myId);
           if (roomPeers.length > 0) {
-            // Always call the first peer found (lowest ID)
-            const remotePeerId = roomPeers.sort()[0];
-            if (!hasConnected) {
-              call = peer.call(remotePeerId, localStream);
-              call.on('stream', stream => {
-                remoteVideo.srcObject = stream;
-              });
-              hasConnected = true;
-              if (callTimeout) clearTimeout(callTimeout);
+            // Deterministic: only the user with the highest ID calls the lowest
+            const allPeers = [myId, ...roomPeers].sort();
+            if (myId === allPeers[allPeers.length - 1]) {
+              const remotePeerId = allPeers[0];
+              if (!hasConnected) {
+                call = peer.call(remotePeerId, localStream);
+                call.on('stream', stream => {
+                  remoteVideo.srcObject = stream;
+                });
+                hasConnected = true;
+                if (callTimeout) clearTimeout(callTimeout);
+              }
             }
           } else if (attempts < 10) {
             attempts++;
@@ -131,6 +135,6 @@ leaveBtn.onclick = () => {
   hasConnected = false;
   if (callTimeout) clearTimeout(callTimeout);
 };
-  </script>
+</script>
 </body>
 </html>
