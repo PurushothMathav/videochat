@@ -12,6 +12,7 @@
       justify-content: center;
       align-items: center;
       height: 100vh;
+      font-family: sans-serif;
     }
     .video-container {
       position: relative;
@@ -47,6 +48,8 @@
       display: flex;
       gap: 10px;
       z-index: 3;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .controls button {
       padding: 10px 14px;
@@ -55,6 +58,11 @@
       border: none;
       background-color: #fff;
       cursor: pointer;
+      min-width: 80px;
+    }
+    .off {
+      background-color: #f87171 !important;
+      color: #fff;
     }
   </style>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -65,17 +73,34 @@
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay muted playsinline></video>
   <div class="controls">
-    <button onclick="flipCamera()">Flip Camera</button>
-    <button onclick="endCall()">End Call</button>
+    <button id="flipBtn">Flip</button>
+    <button id="micBtn">Mic</button>
+    <button id="camBtn">Camera</button>
+    <button id="endBtn">End</button>
   </div>
 </div>
+
+  <div id="shareBox" style="display:none; padding:16px; text-align:center;">
+  <p style="color:#fff;">Share this link:</p>
+  <input id="shareLink" type="text" readonly style="width:90%; padding:10px; font-size:14px;">
+  <br/><br/>
+  <button onclick="copyLink()">Copy</button>
+  <button onclick="shareLink()">Share</button>
+</div>
+
 
 <script>
   const localVideo = document.getElementById("localVideo");
   const remoteVideo = document.getElementById("remoteVideo");
+  const flipBtn = document.getElementById("flipBtn");
+  const micBtn = document.getElementById("micBtn");
+  const camBtn = document.getElementById("camBtn");
+  const endBtn = document.getElementById("endBtn");
 
   let localStream, peer, call;
   let useFront = true;
+  let micOn = true;
+  let camOn = true;
 
   async function getMedia() {
     if (localStream) localStream.getTracks().forEach(track => track.stop());
@@ -91,9 +116,54 @@
   async function flipCamera() {
     useFront = !useFront;
     const stream = await getMedia();
+    replaceStreamTrack("video", stream.getVideoTracks()[0]);
+  }
+
+  function toggleMic() {
+    micOn = !micOn;
+    localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+    micBtn.classList.toggle("off", !micOn);
+  }
+
+  function toggleCam() {
+    camOn = !camOn;
+    localStream.getVideoTracks().forEach(track => track.enabled = camOn);
+    camBtn.classList.toggle("off", !camOn);
+  }
+  const shareBox = document.getElementById('shareBox');
+const shareLinkInput = document.getElementById('shareLink');
+
+function showShareUI(link) {
+  shareLinkInput.value = link;
+  shareBox.style.display = 'block';
+}
+
+function copyLink() {
+  shareLinkInput.select();
+  shareLinkInput.setSelectionRange(0, 99999);
+  document.execCommand("copy");
+  alert("Link copied!");
+}
+
+function shareLink() {
+  if (navigator.share) {
+    navigator.share({
+      title: "Video Chat Invite",
+      text: "Join my video chat",
+      url: shareLinkInput.value
+    }).catch(err => {
+      console.error("Share failed:", err);
+    });
+  } else {
+    alert("Sharing not supported. Please copy the link manually.");
+  }
+}
+
+  
+  function replaceStreamTrack(kind, newTrack) {
     if (call && call.peerConnection) {
-      const sender = call.peerConnection.getSenders().find(s => s.track.kind === 'video');
-      if (sender) sender.replaceTrack(stream.getVideoTracks()[0]);
+      const sender = call.peerConnection.getSenders().find(s => s.track.kind === kind);
+      if (sender) sender.replaceTrack(newTrack);
     }
   }
 
@@ -103,6 +173,11 @@
     if (localStream) localStream.getTracks().forEach(t => t.stop());
     window.location.reload();
   }
+
+  flipBtn.onclick = flipCamera;
+  micBtn.onclick = toggleMic;
+  camBtn.onclick = toggleCam;
+  endBtn.onclick = endCall;
 
   async function init() {
     await getMedia();
@@ -115,7 +190,7 @@
     peer.on("open", id => {
       if (!hostId) {
         const shareUrl = `${window.location.href}?host=${id}`;
-        alert("Share this link: " + shareUrl);
+        showShareUI(shareUrl);
       }
     });
 
