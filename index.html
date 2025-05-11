@@ -9,9 +9,11 @@
       margin: 0;
       background: #000;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
       height: 100vh;
+      color: white;
       font-family: sans-serif;
     }
     .video-container {
@@ -23,6 +25,7 @@
       overflow: hidden;
       border-radius: 16px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      margin-top: 16px;
     }
     video {
       width: 100%;
@@ -60,34 +63,47 @@
       cursor: pointer;
       min-width: 80px;
     }
-    .off {
-      background-color: #f87171 !important;
-      color: #fff;
+    .controls button.off {
+      background-color: #ff4d4d;
+      color: white;
+    }
+    #shareBox {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+    }
+    #shareLink {
+      width: 90%;
+      padding: 10px;
+      font-size: 14px;
+      border-radius: 8px;
+      margin-bottom: 8px;
     }
   </style>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
+<h2>Peer Video Chat</h2>
+
 <div class="video-container">
   <video id="remoteVideo" autoplay playsinline></video>
   <video id="localVideo" autoplay muted playsinline></video>
   <div class="controls">
     <button id="flipBtn">Flip</button>
-    <button id="micBtn">Mic</button>
-    <button id="camBtn">Camera</button>
-    <button id="endBtn">End</button>
+    <button id="micBtn">Mic On</button>
+    <button id="camBtn">Cam On</button>
+    <button id="endBtn" class="off">End</button>
   </div>
 </div>
 
-  <div id="shareBox" style="display:none; padding:16px; text-align:center;">
-  <p style="color:#fff;">Share this link:</p>
-  <input id="shareLink" type="text" readonly style="width:90%; padding:10px; font-size:14px;">
-  <br/><br/>
+<div id="shareBox">
+  <p>Share this link:</p>
+  <input id="shareLink" type="text" readonly>
+  <br>
   <button onclick="copyLink()">Copy</button>
   <button onclick="shareLink()">Share</button>
 </div>
-
 
 <script>
   const localVideo = document.getElementById("localVideo");
@@ -96,11 +112,12 @@
   const micBtn = document.getElementById("micBtn");
   const camBtn = document.getElementById("camBtn");
   const endBtn = document.getElementById("endBtn");
+  const shareBox = document.getElementById("shareBox");
+  const shareLinkInput = document.getElementById("shareLink");
 
   let localStream, peer, call;
   let useFront = true;
-  let micOn = true;
-  let camOn = true;
+  let micOn = true, camOn = true;
 
   async function getMedia() {
     if (localStream) localStream.getTracks().forEach(track => track.stop());
@@ -115,69 +132,56 @@
 
   async function flipCamera() {
     useFront = !useFront;
-    const stream = await getMedia();
-    replaceStreamTrack("video", stream.getVideoTracks()[0]);
+    const newStream = await getMedia();
+    const videoTrack = newStream.getVideoTracks()[0];
+    const sender = call?.peerConnection?.getSenders()?.find(s => s.track.kind === 'video');
+    if (sender) sender.replaceTrack(videoTrack);
   }
 
   function toggleMic() {
     micOn = !micOn;
-    localStream.getAudioTracks().forEach(track => track.enabled = micOn);
+    localStream.getAudioTracks().forEach(t => t.enabled = micOn);
+    micBtn.textContent = micOn ? "Mic On" : "Mic Off";
     micBtn.classList.toggle("off", !micOn);
   }
 
   function toggleCam() {
     camOn = !camOn;
-    localStream.getVideoTracks().forEach(track => track.enabled = camOn);
+    localStream.getVideoTracks().forEach(t => t.enabled = camOn);
+    camBtn.textContent = camOn ? "Cam On" : "Cam Off";
     camBtn.classList.toggle("off", !camOn);
-  }
-  const shareBox = document.getElementById('shareBox');
-const shareLinkInput = document.getElementById('shareLink');
-
-function showShareUI(link) {
-  shareLinkInput.value = link;
-  shareBox.style.display = 'block';
-}
-
-function copyLink() {
-  shareLinkInput.select();
-  shareLinkInput.setSelectionRange(0, 99999);
-  document.execCommand("copy");
-  alert("Link copied!");
-}
-
-function shareLink() {
-  if (navigator.share) {
-    navigator.share({
-      title: "Video Chat Invite",
-      text: "Join my video chat",
-      url: shareLinkInput.value
-    }).catch(err => {
-      console.error("Share failed:", err);
-    });
-  } else {
-    alert("Sharing not supported. Please copy the link manually.");
-  }
-}
-
-  
-  function replaceStreamTrack(kind, newTrack) {
-    if (call && call.peerConnection) {
-      const sender = call.peerConnection.getSenders().find(s => s.track.kind === kind);
-      if (sender) sender.replaceTrack(newTrack);
-    }
   }
 
   function endCall() {
     if (call) call.close();
     if (peer) peer.destroy();
     if (localStream) localStream.getTracks().forEach(t => t.stop());
-    window.location.reload();
+    window.location.href = window.location.origin + window.location.pathname; // Clear ?host param
   }
 
-  flipBtn.onclick = flipCamera;
-  micBtn.onclick = toggleMic;
-  camBtn.onclick = toggleCam;
-  endBtn.onclick = endCall;
+  function showShareUI(link) {
+    shareLinkInput.value = link;
+    shareBox.style.display = 'block';
+  }
+
+  function copyLink() {
+    shareLinkInput.select();
+    shareLinkInput.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+    alert("Link copied!");
+  }
+
+  function shareLink() {
+    if (navigator.share) {
+      navigator.share({
+        title: "Video Chat",
+        text: "Join me!",
+        url: shareLinkInput.value
+      }).catch(err => console.error("Share error:", err));
+    } else {
+      alert("Your browser doesn't support direct sharing. Please copy the link.");
+    }
+  }
 
   async function init() {
     await getMedia();
@@ -185,24 +189,29 @@ function shareLink() {
     const urlParams = new URLSearchParams(window.location.search);
     const hostId = urlParams.get("host");
 
+    if (hostId === "null" || !hostId) {
+      console.log("Starting as host...");
+    }
+
     peer = new Peer();
 
     peer.on("open", id => {
-      if (!hostId) {
-        const shareUrl = `${window.location.href}?host=${id}`;
-        showShareUI(shareUrl);
+      if (!hostId && id) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("host", id);
+        showShareUI(url.toString());
       }
     });
 
-    if (hostId) {
-      peer.on("call", incomingCall => {
-        call = incomingCall;
-        call.answer(localStream);
+    if (hostId && hostId !== "null") {
+      peer.on("open", () => {
+        call = peer.call(hostId, localStream);
         call.on("stream", stream => remoteVideo.srcObject = stream);
       });
     } else {
-      peer.on("open", id => {
-        call = peer.call(hostId, localStream);
+      peer.on("call", incomingCall => {
+        call = incomingCall;
+        call.answer(localStream);
         call.on("stream", stream => remoteVideo.srcObject = stream);
       });
     }
@@ -212,6 +221,11 @@ function shareLink() {
       alert("Peer error: " + err.message);
     });
   }
+
+  flipBtn.onclick = flipCamera;
+  micBtn.onclick = toggleMic;
+  camBtn.onclick = toggleCam;
+  endBtn.onclick = endCall;
 
   init();
 </script>
